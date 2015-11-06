@@ -79,6 +79,9 @@ def convert_data_to_model():
             data["name"]["first"] = data["given_names"].strip()
         if "family_name" in data and data["family_name"]:
             data["name"]["last"] = data["family_name"].strip()
+        else:
+            # FIXME workaround for BibField problem
+            data["name"]["last"] = u" "
         if "display_name" in data and data["display_name"]:
             data["name"]["preferred_name"] = data["display_name"]
         data["urls"] = []
@@ -412,3 +415,9 @@ def create_curation_ticket(template, queue="Test", ticket_id_key="ticket_id"):
         )
 
     return _create_curation_ticket
+
+
+def recreate_data(obj, eng):
+    """Check if data needs to be recreated."""
+    extra_data = obj.get_extra_data()
+    return extra_data.get("recreate_data", False)
