@@ -101,43 +101,42 @@ def do_upgrade():
                 pos = [0]  # Nothing here, we go to start
             obj.save(task_counter=pos)
 
-    # Special submission handling
-    for deposit in BibWorkflowObject.query.filter(
-            BibWorkflowObject.module_name == "webdeposit"):
-        reset_workflow_object_states(deposit)
-        d = Deposition(deposit)
-        sip = d.get_latest_sip()
-        if sip:
-            sip.metadata = bibfield.do(sip.metadata)
-            sip.package = legacy_export_as_marc(hep2marc.do(sip.metadata))
-            d.update()
-        deposit.save()
-
-    # Special workflow handling
-    workflows_to_fix = ["process_record_arxiv"]
+    workflows_to_fix = [
+        "process_record_arxiv", "literature",
+        "authornew", "authorupdate"
+    ]
     workflow_objects = []
     for workflow_name in workflows_to_fix:
         workflow_objects += BibWorkflowObject.query.join(
             BibWorkflowObject.workflow).filter(Workflow.name == workflow_name).all()
 
     for obj in workflow_objects:
-        metadata = obj.get_data()
         reset_workflow_object_states(obj)
         rename_object_action(obj)
-        if isinstance(metadata, six.string_types):
-            # Ignore records that have string as data
-            continue
-        if 'drafts' in metadata:
-            # New data model detected
-            continue
-        if hasattr(metadata, 'dumps'):
-            metadata = metadata.dumps(clean=True)
-        obj.data = bibfield.do(metadata)
-        payload = Payload.create(
-            type=obj.workflow.name,
-            workflow_object=obj
-        )
-        payload.save()
+        if obj.workflow.name == "process_record_arxiv":
+            metadata = obj.get_data()
+            if isinstance(metadata, six.string_types):
+                # Ignore records that have string as data
+                continue
+            if 'drafts' in metadata:
+                # New data model detected
+                continue
+            if hasattr(metadata, 'dumps'):
+                metadata = metadata.dumps(clean=True)
+            obj.data = bibfield.do(metadata)
+            payload = Payload.create(
+                type=obj.workflow.name,
+                workflow_object=obj
+            )
+            payload.update()
+        elif obj.workflow.name == "literature":
+            d = Deposition(obj)
+            sip = d.get_latest_sip()
+            if sip:
+                sip.metadata = bibfield.do(sip.metadata)
+                sip.package = legacy_export_as_marc(hep2marc.do(sip.metadata))
+                d.update()
+        obj.save()  # To update and trigger indexing
 
 
 def estimate():
