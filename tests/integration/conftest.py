@@ -52,24 +52,28 @@ def app():
         from inspirehep.modules.fixtures.collections import init_collections
         from inspirehep.modules.fixtures.files import init_all_storage_paths
         from inspirehep.modules.fixtures.users import init_users_and_permissions
+        from inspirehep.modules.relations.utils import get_all_records_in_db
+        from inspirehep.modules.relations.migrate import migrate as migrate_relations
 
-        db.drop_all()
-        db.create_all()
-
-        sleep(10)  # Makes sure that ES is up.
-        _es = app.extensions['invenio-search']
-        list(_es.delete(ignore=[404]))
-        list(_es.create(ignore=[400]))
-
-        init_all_storage_paths()
-        init_users_and_permissions()
-        init_collections()
-
-        migrate('./inspirehep/demosite/data/demo-records.xml.gz', wait_for_results=True)
-        es.indices.refresh('records-hep')  # Makes sure that all HEP records were migrated.
-
-        add_citation_counts()
-        es.indices.refresh('records-hep')  # Makes sure that all citation counts were added.
+        # db.drop_all()
+        # db.create_all()
+        #
+        # sleep(10)  # Makes sure that ES is up.
+        # _es = app.extensions['invenio-search']
+        # list(_es.delete(ignore=[404]))
+        # list(_es.create(ignore=[400]))
+        #
+        # init_all_storage_paths()
+        # init_users_and_permissions()
+        # init_collections()
+        #
+        # migrate('./inspirehep/demosite/data/demo-records.xml.gz', wait_for_results=True)
+        # es.indices.refresh('records-hep')  # Makes sure that all HEP records were migrated.
+        #
+        # add_citation_counts()
+        # es.indices.refresh('records-hep')  # Makes sure that all citation counts were added.
+        # records, count = get_all_records_in_db()
+        # migrate_relations(records, count, app.config['RELATIONS_STORAGEDIR'])
 
         yield app
 
